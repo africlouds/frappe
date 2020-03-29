@@ -27,7 +27,6 @@ export default class WebFormList {
 			() => this.get_list_view_fields(),
 			() => this.get_data(),
 			() => this.make_table(),
-			() => this.create_more()
 		]);
 	}
 
@@ -53,12 +52,10 @@ export default class WebFormList {
 						only_select: true,
 						label: __(field.label),
 						onchange: (event) => {
-							$('#more').remove();
 							this.add_filter(field.fieldname, input.value, field.fieldtype)
 						}
 					},
 					parent: col,
-					value: field.default,
 					render_input: 1,
 				})
 				this.filter_input.push(input)
@@ -67,7 +64,7 @@ export default class WebFormList {
 	}
 
 	add_filter(field, value, fieldtype) {
-		if (!value) {
+		if (!value && field in this.filters) {
 			delete this.filters[field]
 		}
 		else {
@@ -189,12 +186,13 @@ export default class WebFormList {
 
 	make_actions() {
 		const actions = document.querySelector(".list-view-actions");
+		const footer = document.querySelector(".list-view-footer");
 
-		this.addButton(actions, "delete-rows", "danger", true, "Delete", () =>
+		addButton(actions, "delete-rows", "danger", true, "Delete", () =>
 			this.delete_rows()
 		);
 
-		this.addButton(
+		addButton(
 			actions,
 			"new",
 			"primary",
@@ -202,45 +200,37 @@ export default class WebFormList {
 			"New",
 			() => (window.location.href = window.location.pathname + "?new=1")
 		);
-	}
 
-	addButton(wrapper, id, type, hidden, name, action) {
-		if (document.getElementById(id)) return;
-		const button = document.createElement("button");
-		if (type == "secondary") {
-			button.classList.add(
-				"btn",
-				"btn-secondary",
-				"btn-sm",
-				"ml-2",
-				"text-white"
-			);
+		if (!(this.rows.length < this.page_length)) {
+			addButton(footer, "more", "secondary", false, "More", () =>  this.more());
 		}
-		else if (type == "danger") {
-			button.classList.add(
-				"btn",
-				"btn-danger",
-				"button-delete",
-				"btn-sm",
-				"ml-2"
-			);
-		}
-		else {
+
+		function addButton(wrapper, id, type, hidden, name, action) {
+			const button = document.createElement("button");
 			button.classList.add("btn", "btn-primary", "btn-sm", "ml-2");
-		}
+			if (type == "secondary")
+				button.classList.add(
+					"btn",
+					"btn-secondary",
+					"btn-sm",
+					"ml-2",
+					"text-white"
+				);
+			if (type == "danger")
+				button.classList.add(
+					"btn",
+					"btn-danger",
+					"button-delete",
+					"btn-sm",
+					"ml-2"
+				);
 
-		button.id = id;
-		button.innerText = name;
-		button.hidden = hidden;
+			button.id = id;
+			button.innerText = name;
+			button.hidden = hidden;
 
-		button.onclick = action;
-		wrapper.appendChild(button);
-	}
-
-	create_more() {
-		if (this.rows.length >= this.page_length) {
-			const footer = document.querySelector(".list-view-footer");
-			this.addButton(footer, "more", "secondary", false, "More", () =>  this.more());
+			button.onclick = action;
+			wrapper.appendChild(button);
 		}
 	}
 

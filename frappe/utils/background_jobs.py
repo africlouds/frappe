@@ -8,8 +8,6 @@ import frappe
 import os, socket, time
 from frappe import _
 from six import string_types
-from uuid import uuid4
-import frappe.monitor
 
 # imports - third-party imports
 
@@ -81,6 +79,8 @@ def run_doc_method(doctype, name, doc_method, **kwargs):
 
 def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True, retry=0):
 	'''Executes job in a worker, performs commit/rollback and logs if there is any error'''
+	from frappe.utils.scheduler import log
+
 	if is_async:
 		frappe.connect(site)
 		if os.environ.get('CI'):
@@ -95,7 +95,6 @@ def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True,
 	else:
 		method_name = cstr(method.__name__)
 
-	frappe.monitor.start("job", method_name, kwargs)
 	try:
 		method(**kwargs)
 
@@ -116,21 +115,18 @@ def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True,
 				is_async=is_async, retry=retry+1)
 
 		else:
-			frappe.log_error(method_name)
+			log(method_name, message=repr(locals()))
 			raise
 
 	except:
 		frappe.db.rollback()
-		frappe.log_error(method_name)
-		frappe.db.commit()
-		print(frappe.get_traceback())
+		log(method_name, message=repr(locals()))
 		raise
 
 	else:
 		frappe.db.commit()
 
 	finally:
-		frappe.monitor.stop()
 		if is_async:
 			frappe.destroy()
 
@@ -156,8 +152,7 @@ def get_worker_name(queue):
 
 	if queue:
 		# hostname.pid is the default worker name
-		name = '{uuid}.{hostname}.{pid}.{queue}'.format(
-			uuid=uuid4().hex,
+		name = '{hostname}.{pid}.{queue}'.format(
 			hostname=socket.gethostname(),
 			pid=os.getpid(),
 			queue=queue)
@@ -167,25 +162,18 @@ def get_worker_name(queue):
 def get_jobs(site=None, queue=None, key='method'):
 	'''Gets jobs per queue or per site or both'''
 	jobs_per_site = defaultdict(list)
-
-	def add_to_dict(job):
-		if key in job.kwargs:
-			jobs_per_site[job.kwargs['site']].append(job.kwargs[key])
-
-		elif key in job.kwargs.get('kwargs', {}):
-			# optional keyword arguments are stored in 'kwargs' of 'kwargs'
-			jobs_per_site[job.kwargs['site']].append(job.kwargs['kwargs'][key])
-
 	for queue in get_queue_list(queue):
 		q = get_queue(queue)
 
 		for job in q.jobs:
 			if job.kwargs.get('site'):
 				if site is None:
-					add_to_dict(job)
+					# get jobs for all sites
+					jobs_per_site[job.kwargs['site']].append(job.kwargs[key])
 
 				elif job.kwargs['site'] == site:
-					add_to_dict(job)
+					# get jobs only for given site
+					jobs_per_site[site].append(job.kwargs[key])
 
 			else:
 				print('No site found in job', job.__dict__)
@@ -210,7 +198,13 @@ def get_queue_list(queue_list=None):
 def get_queue(queue, is_async=True):
 	'''Returns a Queue object tied to a redis connection'''
 	validate_queue(queue)
-	return Queue(queue, connection=get_redis_conn(), is_async=is_async)
+
+	kwargs = {
+		'connection': get_redis_conn(),
+		'async': is_async
+	}
+
+	return Queue(queue, **kwargs)
 
 def validate_queue(queue, default_queue_list=None):
 	if not default_queue_list:

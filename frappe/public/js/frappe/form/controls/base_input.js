@@ -119,12 +119,9 @@ frappe.ui.form.ControlInput = frappe.ui.form.Control.extend({
 		} else {
 			value = this.value || value;
 		}
-		if (this.df.fieldtype === 'Data') {
-			value = frappe.utils.escape_html(value);
-		}
-		let doc = this.doc || (this.frm && this.frm.doc);
-		let display_value = frappe.format(value, this.df, { no_icon: true, inline: true }, doc);
-		this.disp_area && $(this.disp_area).html(display_value);
+		this.disp_area && $(this.disp_area)
+			.html(frappe.format(value, this.df, {no_icon:true, inline:true},
+				this.doc || (this.frm && this.frm.doc)));
 	},
 
 	bind_change_event: function() {

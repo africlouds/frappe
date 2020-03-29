@@ -2,7 +2,7 @@ context('Awesome Bar', () => {
 	before(() => {
 		cy.visit('/login');
 		cy.login();
-		cy.visit('/desk#workspace/Website');
+		cy.visit('/desk');
 	});
 
 	beforeEach(() => {
@@ -25,8 +25,9 @@ context('Awesome Bar', () => {
 
 		cy.get('h1').should('contain', 'To Do');
 
-		cy.get('[data-original-title="Name"] > .input-with-feedback')
-			.should('have.value', '%test%');
+		cy.get('.toggle-filter')
+			.should('have.length', 1)
+			.should('contain', 'ID like %test%');
 	});
 
 	it('navigates to new form', () => {

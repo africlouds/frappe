@@ -1,5 +1,4 @@
 {
- "actions": [],
  "allow_import": 1,
  "creation": "2013-01-10 16:34:01",
  "description": "Adds a custom field to a DocType",
@@ -25,8 +24,10 @@
   "collapsible_depends_on",
   "default",
   "depends_on",
-  "mandatory_depends_on",
-  "read_only_depends_on",
+  "description",
+  "permlevel",
+  "width",
+  "columns",
   "properties",
   "reqd",
   "unique",
@@ -44,13 +45,8 @@
   "bold",
   "report_hide",
   "search_index",
-  "allow_in_quick_entry",
   "ignore_xss_filter",
-  "translatable",
-  "description",
-  "permlevel",
-  "width",
-  "columns"
+  "translatable"
  ],
  "fields": [
   {
@@ -124,7 +120,7 @@
    "fieldname": "precision",
    "fieldtype": "Select",
    "label": "Precision",
-   "options": "\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9"
+   "options": "\n1\n2\n3\n4\n5\n6\n7\n8\n9"
   },
   {
    "fieldname": "options",
@@ -353,30 +349,11 @@
    "fieldname": "length",
    "fieldtype": "Int",
    "label": "Length"
-  },
-  {
-   "fieldname": "mandatory_depends_on",
-   "fieldtype": "Code",
-   "label": "Mandatory Depends On",
-   "length": 255
-  },
-  {
-   "fieldname": "read_only_depends_on",
-   "fieldtype": "Code",
-   "label": "Read Only Depends On",
-   "length": 255
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_in_quick_entry",
-   "fieldtype": "Check",
-   "label": "Allow in Quick Entry"
   }
  ],
  "icon": "fa fa-glass",
  "idx": 1,
- "links": [],
- "modified": "2020-03-16 14:52:43.954709",
+ "modified": "2019-09-11 12:57:19.268934",
  "modified_by": "Administrator",
  "module": "Custom",
  "name": "Custom Field",

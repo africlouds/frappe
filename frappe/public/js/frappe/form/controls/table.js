@@ -102,8 +102,5 @@ frappe.ui.form.ControlTable = frappe.ui.form.Control.extend({
 	},
 	validate: function() {
 		return this.get_value();
-	},
-	check_all_rows() {
-		this.$wrapper.find('.grid-row-check')[0].click();
 	}
 });

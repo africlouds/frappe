@@ -1,7 +1,7 @@
 context('List View Settings', () => {
 	beforeEach(() => {
 		cy.login();
-		cy.visit('/desk#workspace/Website');
+		cy.visit('/desk');
 	});
 	it('Default settings', () => {
 		cy.visit('/desk#List/DocType/List');

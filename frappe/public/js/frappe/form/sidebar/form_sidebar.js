@@ -32,9 +32,7 @@ frappe.ui.form.Sidebar = Class.extend({
 
 		this.make_tags();
 		this.make_like();
-		if (frappe.boot.user.document_follow_notify) {
-			this.make_follow();
-		}
+		this.make_follow();
 
 		this.bind_events();
 		this.setup_keyboard_shortcuts();
@@ -76,11 +74,9 @@ frappe.ui.form.Sidebar = Class.extend({
 			this.frm.assign_to.refresh();
 			this.frm.attachments.refresh();
 			this.frm.shared.refresh();
-			if (frappe.boot.user.document_follow_notify) {
-				this.frm.follow.refresh();
-			}
+			this.frm.follow.refresh();
 			this.frm.viewers.refresh();
-			this.frm.tags && this.frm.tags.refresh(this.frm.get_docinfo().tags);
+			this.frm.tags && this.frm.tags.refresh(this.frm.doc._user_tags);
 			this.sidebar.find(".modified-by").html(__("{0} edited this {1}",
 				["<strong>" + frappe.user.full_name(this.frm.doc.modified_by) + "</strong>",
 					"<br>" + comment_when(this.frm.doc.modified)]));
@@ -123,6 +119,7 @@ frappe.ui.form.Sidebar = Class.extend({
 	},
 
 	make_tags: function() {
+		var me = this;
 		if (this.frm.meta.issingle) {
 			this.sidebar.find(".form-tags").toggle(false);
 			return;
@@ -132,7 +129,7 @@ frappe.ui.form.Sidebar = Class.extend({
 			parent: this.sidebar.find(".tag-area"),
 			frm: this.frm,
 			on_change: function(user_tags) {
-				this.frm.tags && this.frm.tags.refresh(user_tags);
+				me.frm.doc._user_tags = user_tags;
 			}
 		});
 	},
@@ -219,7 +216,7 @@ frappe.ui.form.Sidebar = Class.extend({
 			callback: (r) => {
 				// docinfo will be synced
 				if(callback) callback(r.docinfo);
-				this.frm.timeline && this.frm.timeline.refresh();
+				this.frm.timeline.refresh();
 				this.frm.assign_to.refresh();
 				this.frm.attachments.refresh();
 			}

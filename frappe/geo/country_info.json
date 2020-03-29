@@ -810,10 +810,10 @@
  },
  "Estonia": {
   "code": "ee",
-  "currency": "EUR",
+  "currency": "EEK",
   "currency_fraction": "Cent",
   "currency_fraction_units": 100,
-  "currency_name": "Euro",
+  "currency_name": "Kroon",
   "currency_symbol": "\u20ac",
   "number_format": "#,###.##",
   "timezones": [

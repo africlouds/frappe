@@ -6,111 +6,64 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 import datetime
-import json
 from frappe.core.page.dashboard.dashboard import cache_source, get_from_date_from_timespan
-from frappe.utils import nowdate, add_to_date, getdate, get_last_day, formatdate, get_datetime
-from frappe.model.naming import append_number_if_name_exists
+from frappe.utils import nowdate, add_to_date, getdate, get_last_day, formatdate
 from frappe.model.document import Document
 
 @frappe.whitelist()
 @cache_source
-def get(chart_name = None, chart = None, no_cache = None, filters = None, from_date = None,
-	to_date = None, timespan = None, time_interval = None, refresh = None):
+def get(chart_name = None, chart = None, no_cache = None, from_date=None, to_date=None, refresh = None):
 	if chart_name:
 		chart = frappe.get_doc('Dashboard Chart', chart_name)
 	else:
 		chart = frappe._dict(frappe.parse_json(chart))
 
-
-	timespan = timespan or chart.timespan
-
-	if timespan == 'Select Date Range':
-		if from_date and len(from_date):
-			from_date = get_datetime(from_date)
-		else:
-			from_date = chart.from_date
-
-		if to_date and len(to_date):
-			to_date = get_datetime(to_date)
-		else:
-			to_date = chart.to_date
-
-	timegrain = time_interval or chart.time_interval
-	filters = frappe.parse_json(filters) or frappe.parse_json(chart.filters_json)
+	timespan = chart.timespan
+	timegrain = chart.time_interval
+	filters = frappe.parse_json(chart.filters_json)
 
 	# don't include cancelled documents
-	filters.append([chart.document_type, 'docstatus', '<', 2, False])
+	filters['docstatus'] = ('<', 2)
 
-	if chart.chart_type == 'Group By':
-		chart_config = get_group_by_chart_config(chart, filters)
-	else:
-		chart_config =  get_chart_config(chart, filters, timespan, timegrain, from_date, to_date)
-
-	return chart_config
-
-@frappe.whitelist()
-def create_report_chart(args):
-	args = frappe.parse_json(args)
-	_doc = frappe.new_doc('Dashboard Chart')
-
-	_doc.update(args)
-	if frappe.db.exists('Dashboard Chart', args.chart_name):
-		args.chart_name = append_number_if_name_exists('Dashboard Chart', args.chart_name)
-		_doc.chart_name = args.chart_name
-	_doc.insert(ignore_permissions=True)
-
-	if args.dashboard:
-		add_chart_to_dashboard(json.dumps(args))
-
-@frappe.whitelist()
-def add_chart_to_dashboard(args):
-	args = frappe.parse_json(args)
-	dashboard = frappe.get_doc('Dashboard', args.dashboard)
-	dashboard_link = frappe.new_doc('Dashboard Chart Link')
-	dashboard_link.chart = args.chart_name
-
-	dashboard.append('charts', dashboard_link)
-	dashboard.save()
-	frappe.db.commit()
-
-def get_chart_config(chart, filters, timespan, timegrain, from_date, to_date):
 	if not from_date:
 		from_date = get_from_date_from_timespan(to_date, timespan)
 	if not to_date:
 		to_date = datetime.datetime.now()
 
-	doctype = chart.document_type
-	unit_function = get_unit_function(doctype, chart.based_on, timegrain)
-	datefield = chart.based_on
-	aggregate_function = get_aggregate_function(chart.chart_type)
-	value_field = chart.value_based_on or '1'
-	from_date = from_date.strftime('%Y-%m-%d')
-	to_date = to_date
+	# get conditions from filters
+	conditions, values = frappe.db.build_conditions(filters)
 
-	filters.append([doctype, datefield, '>=', from_date, False])
-	filters.append([doctype, datefield, '<=', to_date, False])
-
-	data = frappe.db.get_all(
-		doctype,
-		fields = [
-			'extract(year from `tab{doctype}`.{datefield}) as _year'.format(doctype=doctype, datefield=datefield),
-			'{} as _unit'.format(unit_function),
-			'{aggregate_function}({value_field})'.format(aggregate_function=aggregate_function, value_field=value_field),
-		],
-		filters = filters,
-		group_by = '_year, _unit',
-		order_by = '_year asc, _unit asc',
-		as_list = True,
-		ignore_ifnull = True
-	)
-
+	# query will return year, unit and aggregate value
+	data = frappe.db.sql('''
+		select
+			extract(year from {datefield}) as _year,
+			{unit_function} as _unit,
+			{aggregate_function}({value_field})
+		from `tab{doctype}`
+		where
+			{conditions}
+			and {datefield} >= '{from_date}'
+			and {datefield} <= '{to_date}'
+		group by _year, _unit
+		order by _year asc, _unit asc
+	'''.format(
+		unit_function = get_unit_function(chart.based_on, timegrain),
+		datefield = chart.based_on,
+		aggregate_function = get_aggregate_function(chart.chart_type),
+		value_field = chart.value_based_on or '1',
+		doctype = chart.document_type,
+		conditions = conditions,
+		from_date = from_date.strftime('%Y-%m-%d'),
+		to_date = to_date
+	), values)
 
 	# result given as year, unit -> convert it to end of period of that unit
 	result = convert_to_dates(data, timegrain)
 
 	# add missing data points for periods where there was no result
-	result = add_missing_values(result, timegrain, timespan, from_date, to_date)
-	chart_config = {
+	result = add_missing_values(result, timegrain, from_date, to_date)
+
+	return {
 		"labels": [formatdate(r[0].strftime('%Y-%m-%d')) for r in result],
 		"datasets": [{
 			"name": chart.name,
@@ -118,103 +71,55 @@ def get_chart_config(chart, filters, timespan, timegrain, from_date, to_date):
 		}]
 	}
 
-	return chart_config
-
-
-def get_group_by_chart_config(chart, filters):
-
-	aggregate_function = get_aggregate_function(chart.group_by_type)
-	value_field = chart.aggregate_function_based_on or '1'
-	group_by_field = chart.group_by_based_on
-	doctype = chart.document_type
-
-	data = frappe.db.get_all(
-		doctype,
-		fields = [
-			'{} as name'.format(group_by_field),
-			'{aggregate_function}({value_field}) as count'.format(aggregate_function=aggregate_function, value_field=value_field),
-		],
-		filters = filters,
-		group_by = group_by_field,
-		order_by = 'count desc',
-		ignore_ifnull = True
-	)
-
-	if data:
-		if chart.number_of_groups and chart.number_of_groups < len(data):
-			other_count = 0
-			for i in range(chart.number_of_groups - 1, len(data)):
-				other_count += data[i]['count']
-			data = data[0: chart.number_of_groups - 1]
-			data.append({'name': 'Other', 'count': other_count})
-
-		chart_config = {
-			"labels": [item['name'] if item['name'] else 'Not Specified' for item in data],
-			"datasets": [{
-				"name": chart.name,
-				"values": [item['count'] for item in data]
-			}]
-		}
-
-		return chart_config
-	else:
-		return None
-
-
 def get_aggregate_function(chart_type):
 	return {
 		"Sum": "SUM",
 		"Count": "COUNT",
-		"Average": "AVG",
+		"Average": "AVG"
 	}[chart_type]
 
-
 def convert_to_dates(data, timegrain):
-	""" Converts individual dates within data to the end of period """
 	result = []
 	for d in data:
-		if d[2] != 0:
-			if timegrain == 'Daily':
-				result.append([add_to_date('{:d}-01-01'.format(int(d[0])), days = d[1] - 1), d[2]])
-			elif timegrain == 'Weekly':
-				result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), weeks = d[1] + 1), days = -1), d[2]])
-			elif timegrain == 'Monthly':
-				result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), months=d[1]), days = -1), d[2]])
-			elif timegrain == 'Quarterly':
-				result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), months=d[1] * 3), days = -1), d[2]])
-			elif timegrain == 'Yearly':
-				result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), months=12), days = -1), d[2]])
-			result[-1][0] = getdate(result[-1][0])
+		if timegrain == 'Daily':
+			result.append([add_to_date('{:d}-01-01'.format(int(d[0])), days = d[1] - 1), d[2]])
+		elif timegrain == 'Weekly':
+			result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), weeks = d[1] + 1), days = -1), d[2]])
+		elif timegrain == 'Monthly':
+			result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), months = d[1]), days = -1), d[2]])
+		elif timegrain == 'Quarterly':
+			result.append([add_to_date(add_to_date('{:d}-01-01'.format(int(d[0])), months = d[1] * 3), days = -1), d[2]])
+
+		result[-1][0] = getdate(result[-1][0])
 
 	return result
 
-def get_unit_function(doctype, datefield, timegrain):
+def get_unit_function(datefield, timegrain):
 	unit_function = ''
 	if timegrain=='Daily':
 		if frappe.db.db_type == 'mariadb':
-			unit_function = 'dayofyear(`tab{doctype}`.{datefield})'.format(
-				doctype=doctype, datefield=datefield)
+			unit_function = 'dayofyear({})'.format(datefield)
 		else:
-			unit_function = 'extract(doy from `tab{doctype}`.{datefield})'.format(
-				doctype=doctype, datefield=datefield)
+			unit_function = 'extract(doy from {datefield})'.format(
+				datefield=datefield)
 
 	else:
-		unit_function = 'extract({unit} from `tab{doctype}`.{datefield})'.format(
-			unit = timegrain[:-2].lower(), doctype=doctype, datefield=datefield)
+		unit_function = 'extract({unit} from {datefield})'.format(
+			unit = timegrain[:-2].lower(), datefield=datefield)
 
 	return unit_function
 
-def add_missing_values(data, timegrain, timespan, from_date, to_date):
+def add_missing_values(data, timegrain, from_date, to_date):
 	# add missing intervals
 	result = []
 
-	if timespan != 'All Time':
-		first_expected_date = get_period_ending(from_date, timegrain)
-		# fill out data before the first data point
-		first_data_point_date = data[0][0] if data else getdate(add_to_date(to_date, days=1))
-		while first_data_point_date > first_expected_date:
-			result.append([first_expected_date, 0.0])
-			first_expected_date = get_next_expected_date(first_expected_date, timegrain)
+	first_expected_date = get_period_ending(from_date, timegrain)
+
+	# fill out data before the first data point
+	first_data_point_date = data[0][0] if data else getdate(add_to_date(to_date, days=1))
+	while first_data_point_date > first_expected_date:
+		result.append([first_expected_date, 0.0])
+		first_expected_date = get_next_expected_date(first_expected_date, timegrain)
 
 	# fill data points and missing points
 	for i, d in enumerate(data):
@@ -252,16 +157,14 @@ def get_next_expected_date(date, timegrain):
 
 def get_period_ending(date, timegrain):
 	date = getdate(date)
-	if timegrain == 'Daily':
+	if timegrain=='Daily':
 		pass
-	elif timegrain == 'Weekly':
+	elif timegrain=='Weekly':
 		date = get_week_ending(date)
-	elif timegrain == 'Monthly':
+	elif timegrain=='Monthly':
 		date = get_month_ending(date)
-	elif timegrain == 'Quarterly':
+	elif timegrain=='Quarterly':
 		date = get_quarter_ending(date)
-	elif timegrain == 'Yearly':
-		date = get_year_ending(date)
 
 	return getdate(date)
 
@@ -270,13 +173,10 @@ def get_week_ending(date):
 	# for 2019 it is Monday
 
 	week_of_the_year = int(date.strftime('%U'))
-
-	if week_of_the_year == 52:
-		date = add_to_date(date, years=1)
 	# first day of next week
-	date = add_to_date('{}-01-01'.format(date.year), weeks = (week_of_the_year%52) + 1)
+	date = add_to_date('{}-01-01'.format(date.year), weeks = week_of_the_year + 1)
 	# last day of this week
-	return add_to_date(date, days=-1)
+	return add_to_date(date, days = -1)
 
 def get_month_ending(date):
 	month_of_the_year = int(date.strftime('%m'))
@@ -284,7 +184,7 @@ def get_month_ending(date):
 
 	date = add_to_date('{}-01-01'.format(date.year), months = month_of_the_year)
 	# last day of this month
-	return add_to_date(date, days=-1)
+	return add_to_date(date, days = -1)
 
 def get_quarter_ending(date):
 	date = getdate(date)
@@ -300,38 +200,17 @@ def get_quarter_ending(date):
 
 	return date
 
-def get_year_ending(date):
-	''' returns year ending of the given date '''
-
-	# first day of next year (note year starts from 1)
-	date = add_to_date('{}-01-01'.format(date.year), months = 12)
-	# last day of this month
-	return add_to_date(date, days=-1)
-
 
 class DashboardChart(Document):
-
 	def on_update(self):
 		frappe.cache().delete_key('chart-data:{}'.format(self.name))
 
 	def validate(self):
-		if self.chart_type != 'Custom' and self.chart_type != 'Report':
+		if self.chart_type != 'Custom':
 			self.check_required_field()
-			self.check_document_type()
 
 	def check_required_field(self):
+		if not self.based_on:
+			frappe.throw(_("Time series based on is required to create a dashboard chart"))
 		if not self.document_type:
-				frappe.throw(_("Document type is required to create a dashboard chart"))
-
-		if self.chart_type == 'Group By':
-			if not self.group_by_based_on:
-				frappe.throw(_("Group By field is required to create a dashboard chart"))
-			if self.group_by_type in ['Sum', 'Average'] and not self.aggregate_function_based_on:
-				frappe.throw(_("Aggregate Function field is required to create a dashboard chart"))
-		else:
-			if not self.based_on:
-				frappe.throw(_("Time series based on is required to create a dashboard chart"))
-
-	def check_document_type(self):
-		if frappe.get_meta(self.document_type).issingle:
-			frappe.throw("You cannot create a dashboard chart from single DocTypes")
+			frappe.throw(_("Document type is required to create a dashboard chart"))

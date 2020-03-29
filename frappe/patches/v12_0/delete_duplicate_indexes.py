@@ -1,14 +1,12 @@
 import frappe
-from pymysql import InternalError
 
 # This patch deletes all the duplicate indexes created for same column
 # The patch only checks for indexes with UNIQUE constraints
 
 def execute():
-	if frappe.db.db_type != 'mariadb':
-		return
-
+	if frappe.db.db_type != 'mariadb': return
 	all_tables = frappe.db.get_tables()
+
 	final_deletion_map = frappe._dict()
 
 	for table in all_tables:
@@ -36,14 +34,11 @@ def execute():
 
 	# build drop index query
 	for (table_name, index_list) in final_deletion_map.items():
-		query_list = []
-		alter_query = "ALTER TABLE `{}`".format(table_name)
-
+		query = "ALTER TABLE `{}` ".format(table_name)
+		query_parts = []
 		for index in index_list:
-			query_list.append("{} DROP INDEX `{}`".format(alter_query, index))
+			query_parts.append("DROP INDEX `{}`".format(index))
 
-		for query in query_list:
-			try:
-				frappe.db.sql(query)
-			except InternalError:
-				pass
+		query = query + ', '.join(query_parts)
+
+		frappe.db.sql(query)

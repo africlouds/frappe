@@ -43,13 +43,6 @@ frappe.ui.form.PrintPreview = Class.extend({
 				me.multilingual_preview();
 			});
 
-		this.wrapper
-			.find(".print-preview-refresh")
-			.on("click", function () {
-				me.set_default_print_language();
-				me.multilingual_preview();
-			});
-
 		//On selection of language get code and pass it to preview method
 		this.language_sel = this.wrapper
 			.find(".languages")
@@ -477,7 +470,7 @@ frappe.ui.form.PrintPreview = Class.extend({
 	}
 });
 
-frappe.ui.get_print_settings = function (pdf, callback, letter_head, pick_columns) {
+frappe.ui.get_print_settings = function (pdf, callback, letter_head) {
 	var print_settings = locals[":Print Settings"]["Print Settings"];
 
 	var default_letter_head = locals[":Company"] && frappe.defaults.get_default('company')
@@ -505,27 +498,6 @@ frappe.ui.get_print_settings = function (pdf, callback, letter_head, pick_column
 		],
 		default: "Landscape"
 	}];
-
-	if (pick_columns) {
-		columns.push(
-			{
-				label: __("Pick Columns"),
-				fieldtype: "Check",
-				fieldname: "pick_columns",
-			},
-			{
-				label: __("Select Columns"),
-				fieldtype: "MultiCheck",
-				fieldname: "columns",
-				depends_on: "pick_columns",
-				columns: 2,
-				options: pick_columns.map(df => ({
-					label: __(df.label),
-					value: df.fieldname
-				}))
-			}
-		);
-	}
 
 	return frappe.prompt(columns, function (data) {
 		var data = $.extend(print_settings, data);

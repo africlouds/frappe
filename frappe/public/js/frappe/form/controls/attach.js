@@ -13,10 +13,7 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 					<i class="fa fa-paperclip"></i>
 					<a class="attached-file-link" target="_blank"></a>
 				</div>
-				<div>
-					<a class="btn btn-xs btn-default" data-action="reload_attachment">${__('Reload File')}</a>
-					<a class="btn btn-xs btn-default" data-action="clear_attachment">${__('Clear')}</a>
-				</div>
+				<a class="btn btn-xs btn-default clear-file">${__('Clear')}</a>
 			</div>`)
 			.prependTo(me.input_area)
 			.toggle(false);
@@ -24,14 +21,13 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 		this.set_input_attributes();
 		this.has_input = true;
 
-		frappe.utils.bind_actions_with_object(this.$value, this);
-		this.toggle_reload_button();
+		this.$value.find(".clear-file").on("click", function() {
+			me.clear_attachment();
+		});
 	},
 	clear_attachment: function() {
 		var me = this;
 		if(this.frm) {
-			me.parse_validate_and_set_in_model(null);
-			me.refresh();
 			me.frm.attachments.remove_attachment_by_filename(me.value, function() {
 				me.parse_validate_and_set_in_model(null);
 				me.refresh();
@@ -45,21 +41,15 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 			this.refresh();
 		}
 	},
-	reload_attachment() {
-		if (this.file_uploader) {
-			this.file_uploader.uploader.upload_files();
-		}
-	},
 	on_attach_click() {
 		this.set_upload_options();
-		this.file_uploader = new frappe.ui.FileUploader(this.upload_options);
+		new frappe.ui.FileUploader(this.upload_options);
 	},
 	set_upload_options() {
 		let options = {
 			allow_multiple: false,
 			on_success: file => {
 				this.on_upload_complete(file);
-				this.toggle_reload_button();
 			}
 		};
 
@@ -71,6 +61,7 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 		if (this.df.options) {
 			Object.assign(options, this.df.options);
 		}
+
 		this.upload_options = options;
 	},
 
@@ -104,9 +95,4 @@ frappe.ui.form.ControlAttach = frappe.ui.form.ControlData.extend({
 		}
 		this.set_value(attachment.file_url);
 	},
-
-	toggle_reload_button() {
-		this.$value.find('[data-action="reload_attachment"]')
-			.toggle(this.file_uploader && this.file_uploader.uploader.files.length > 0);
-	}
 });

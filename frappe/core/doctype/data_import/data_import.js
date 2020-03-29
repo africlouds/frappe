@@ -3,25 +3,19 @@
 
 frappe.ui.form.on('Data Import', {
 	onload: function(frm) {
-		if (frm.doc.__islocal) {
+		if(frm.doc.__islocal) {
 			frm.set_value("action", "");
 		}
 
-		frappe.call({
-			method: "frappe.core.doctype.data_import.data_import.get_importable_doctypes",
-			callback: function (r) {
-				let importable_doctypes = r.message;
-				frm.set_query("reference_doctype", function () {
-					return {
-						"filters": {
-							"issingle": 0,
-							"istable": 0,
-							"name": ['in', importable_doctypes]
-						}
-					};
-				});
-			}
-		}),
+		frm.set_query("reference_doctype", function() {
+			return {
+				"filters": {
+					"issingle": 0,
+					"istable": 0,
+					"name": ['in', frappe.boot.user.can_import]
+				}
+			};
+		});
 
 		// should never check public
 		frm.fields_dict["import_file"].df.is_private = 1;

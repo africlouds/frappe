@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 
 field_map = {
-	"Contact": ["first_name", "last_name", "address", "phone", "mobile_no", "email_id", "is_primary_contact"],
+	"Contact": ["first_name", "last_name", "address", "phone", "email_id", "is_primary_contact"],
 	"Address": ["address_line1", "address_line2", "city", "state", "pincode", "country", "is_primary_address"]
 }
 
@@ -95,7 +95,7 @@ def get_reference_details(reference_doctype, doctype, reference_list, reference_
 		temp_records.append(d[1:])
 
 	if not reference_list:
-		frappe.throw(_("No records present in {0}").format(reference_doctype))
+		frappe.throw(_("No records present in {0}".format(reference_doctype)))
 
 	reference_details[reference_list[0]][frappe.scrub(doctype)] = temp_records
 	return reference_details

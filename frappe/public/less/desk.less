@@ -35,10 +35,6 @@ a[disabled="disabled"] {
 	background-color: @light-bg;
 	padding: 7px;
 	border-radius: 3px;
-
-	&:hover {
-		background-color: #cfdce5;
-	}
 }
 
 .alert-badge {
@@ -717,7 +713,6 @@ li.user-progress {
 			height: 60px;
 			width: 60px;
 			background-color: #fafbfc;
-			overflow: hidden;
 
 			.flex-text {
 				display: flex;
@@ -776,7 +771,7 @@ li.user-progress {
 // custom font awesome checkbox
 input[type="checkbox"] {
 	position: relative;
-	visibility: hidden;
+	left: -999999px;
 
 	&:before {
 		position: absolute;
@@ -792,7 +787,7 @@ input[type="checkbox"] {
 		font-size: 14px;
 		color: @text-extra-muted;
 		.transition(150ms color);
-		left: 0px;
+		left: 999999px;
 	}
 
 	&:focus:before {
@@ -902,7 +897,6 @@ input[type="checkbox"] {
 	&:focus {
 		outline: none;
 	}
-
 	.fa-circle {
 		font-size: 10px;
 		margin: 0px 2px;
@@ -934,7 +928,6 @@ input[type="checkbox"] {
 	}
 	.lead {
 		margin-top: 20px;
-		font-weight: 500;
 	}
 	.success-state {
 		margin-bottom: 20px;
@@ -966,60 +959,30 @@ input[type="checkbox"] {
 	}
 }
 
-// Onboarding Dialog
-.onboarding-dialog {
-
-	.slide-body {
-		margin-right: auto;
-		margin-left: auto;
-	}
-
-	.slides-wrapper {
-		padding-left: 10px;
-		padding-right: 10px;
-	}
-
-	.modal-content {
-		border: 1px solid #d1d8dd;
-  		box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1);
-	}
-
-	.modal-backdrop {
-		background-color: #ffffff;
-	}
-
-	.modal-backdrop.in {
-		opacity: 1;
-	}
-
-	.modal-dialog {
-		height: 80%;
-		max-width: none;
-	}
-
-	.onboarding-icon {
-		color: @text-muted;
-		margin-right: 5px;
-	}
-
-	.modal-content .slide-container {
-		height: auto;
-		min-height: 100%;
-		bottom: 0;
-	}
-
-	img {
-		max-height: 175px;
-		width: auto;
-	}
-
+// User Progress Dialog
+.user-progress-dialog {
 	.slides-progress {
 		margin-top: 15px;
 	}
 
-	.skip-btn {
-		padding: 5px 0px 5px 0px;
+	.done-state {
+		.check-container {
+			font-size: 64px;
+			margin: 40px;
+		}
+
+		.title {
+			font-weight: normal;
+		}
+
+		.help-links {
+
+			a {
+				margin: 0px 10px;
+			}
+		}
 	}
+
 }
 
 /* broken image styling */
@@ -1148,9 +1111,6 @@ body.no-sidebar {
 		bottom: 0;
 		margin: 0;
 		max-width: 500px;
-		.modal-content {
-			min-height: 0;
-		}
 	}
 	.modal-body {
 		display: none;
@@ -1163,10 +1123,4 @@ body.no-sidebar {
 
 .alt-pressed .alt-underline {
 	text-decoration: underline;
-}
-
-.app-change-log-body {
-	h1 {
-		font-size: 20px;
-	}
 }

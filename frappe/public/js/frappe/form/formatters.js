@@ -84,7 +84,7 @@ frappe.form.formatters = {
 	},
 	Check: function(value) {
 		if(value) {
-			return '<i class="fa fa-check" style="margin-right: 3px;"></i>';
+			return '<i class="octicon octicon-check" style="margin-right: 3px;"></i>';
 		} else {
 			return '<i class="fa fa-square disabled-check"></i>';
 		}
@@ -156,8 +156,7 @@ frappe.form.formatters = {
 			if(frappe.boot.sysdefaults.time_zone) {
 				m = m.tz(frappe.boot.sysdefaults.time_zone);
 			}
-			return m.format(frappe.boot.sysdefaults.date_format.toUpperCase()
-				+  ' ' + frappe.boot.sysdefaults.time_format);
+			return m.format(frappe.boot.sysdefaults.date_format.toUpperCase() + ', h:mm a z');
 		} else {
 			return "";
 		}
@@ -181,13 +180,6 @@ frappe.form.formatters = {
 
 		return frappe.form.formatters.Data(value);
 	},
-	Time: function(value) {
-		if (value) {
-			value = frappe.datetime.str_to_user(value, true);
-		}
-
-		return value || "";
-	},
 	LikedBy: function(value) {
 		var html = "";
 		$.each(JSON.parse(value || "[]"), function(i, v) {
@@ -205,7 +197,13 @@ frappe.form.formatters = {
 		return html;
 	},
 	Comment: function(value) {
-		return value;
+		var html = "";
+		$.each(JSON.parse(value || "[]"), function(i, v) {
+			if(v) html+= '<span class="label label-warning" \
+				style="margin-right: 7px;"\
+				data-field="_comments" data-label="'+v.name+'">'+v.comment+'</span>';
+		});
+		return html;
 	},
 	Assign: function(value) {
 		var html = "";

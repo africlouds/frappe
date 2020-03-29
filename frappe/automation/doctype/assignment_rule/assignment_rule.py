@@ -8,16 +8,8 @@ import frappe
 from frappe.model.document import Document
 from frappe.desk.form import assign_to
 import frappe.cache_manager
-from frappe import _
 
 class AssignmentRule(Document):
-
-	def validate(self):
-		assignment_days = self.get_assignment_days()
-		if not len(set(assignment_days)) == len(assignment_days):
-			repeated_days = get_repeated(assignment_days)
-			frappe.throw(_("Assignment Day {0} has been repeated.").format(frappe.bold(repeated_days)))
-
 	def on_update(self): # pylint: disable=no-self-use
 		frappe.cache_manager.clear_doctype_map('Assignment Rule', self.name)
 
@@ -31,6 +23,12 @@ class AssignmentRule(Document):
 
 		return False
 
+	def apply_close(self, doc, assignments):
+		if (self.close_assignments and
+			self.name in [d.assignment_rule for d in assignments]):
+			return self.close_assignments(doc)
+
+		return False
 
 	def apply_assign(self, doc):
 		if self.safe_eval('assign_condition', doc):
@@ -120,17 +118,6 @@ class AssignmentRule(Document):
 
 		return False
 
-	def get_assignment_days(self):
-		return [d.day for d in self.get('assignment_days', [])]
-
-	def is_rule_not_applicable_today(self):
-		today = frappe.flags.assignment_day or frappe.utils.get_weekday()
-		assignment_days = self.get_assignment_days()
-		if assignment_days and not today in assignment_days:
-			return True
-
-		return False
-
 def get_assignments(doc):
 	return frappe.get_all('ToDo', fields = ['name', 'assignment_rule'], filters = dict(
 		reference_type = doc.get('doctype'),
@@ -151,21 +138,20 @@ def bulk_apply(doctype, docnames):
 			apply(None, doctype=doctype, name=name)
 
 def reopen_closed_assignment(doc):
-	todo_list = frappe.db.get_all('ToDo', filters = dict(
+	todo = frappe.db.exists('ToDo', dict(
 		reference_type = doc.doctype,
 		reference_name = doc.name,
 		status = 'Closed'
 	))
-	if not todo_list:
+	if not todo:
 		return False
-	for todo in todo_list:
-		todo_doc = frappe.get_doc('ToDo', todo.name)
-		todo_doc.status = 'Open'
-		todo_doc.save(ignore_permissions=True)
+	todo = frappe.get_doc("ToDo", todo)
+	todo.status = 'Open'
+	todo.save(ignore_permissions=True)
 	return True
 
 def apply(doc, method=None, doctype=None, name=None):
-	if frappe.flags.in_patch or frappe.flags.in_install or frappe.flags.in_setup_wizard:
+	if frappe.flags.in_patch or frappe.flags.in_install:
 		return
 
 	if not doc and doctype and name:
@@ -195,9 +181,6 @@ def apply(doc, method=None, doctype=None, name=None):
 		# so when the value switches from L1 to L2, L1 team must be unassigned, then L2 can be assigned.
 		clear = False
 		for assignment_rule in assignment_rule_docs:
-			if assignment_rule.is_rule_not_applicable_today():
-				continue
-
 			clear = assignment_rule.apply_unassign(doc, assignments)
 			if clear:
 				break
@@ -205,9 +188,6 @@ def apply(doc, method=None, doctype=None, name=None):
 	# apply rule only if there are no existing assignments
 	if clear:
 		for assignment_rule in assignment_rule_docs:
-			if assignment_rule.is_rule_not_applicable_today():
-				continue
-
 			new_apply = assignment_rule.apply_assign(doc)
 			if new_apply:
 				break
@@ -216,27 +196,14 @@ def apply(doc, method=None, doctype=None, name=None):
 	assignments = get_assignments(doc)
 	if assignments:
 		for assignment_rule in assignment_rule_docs:
-			if assignment_rule.is_rule_not_applicable_today():
-				continue
-
 			if not new_apply:
-				# only reopen if close condition is not satisfied
-				if not assignment_rule.safe_eval('close_condition', doc):
-					reopen =  reopen_closed_assignment(doc)
-					if reopen:
-						break
-			assignment_rule.close_assignments(doc)
+				reopen =  reopen_closed_assignment(doc)
+				if reopen:
+					break
+			close = assignment_rule.apply_close(doc, assignments)
+			if close:
+				break
+
 
 def get_assignment_rules():
 	return [d.document_type for d in frappe.db.get_all('Assignment Rule', fields=['document_type'], filters=dict(disabled = 0))]
-
-def get_repeated(values):
-	unique_list = []
-	diff = []
-	for value in values:
-		if value not in unique_list:
-			unique_list.append(str(value))
-		else:
-			if value not in diff:
-				diff.append(str(value))
-	return " ".join(diff)

@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
 import frappe
-import json
-import re
-import bleach
-import bleach_whitelist.bleach_whitelist as bleach_whitelist
+import json, re
+import bleach, bleach_whitelist.bleach_whitelist as bleach_whitelist
 from six import string_types
 from bs4 import BeautifulSoup
 
@@ -12,8 +10,8 @@ def clean_html(html):
 		return html
 
 	return bleach.clean(clean_script_and_style(html),
-		tags=['div', 'p', 'br', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u',
-			'table', 'thead', 'tbody', 'td', 'tr'],
+		tags=['div', 'p', 'br', 'ul', 'ol', 'li', 'b', 'i', 'em',
+                'table', 'thead', 'tbody', 'td', 'tr'],
 		attributes=[],
 		styles=['color', 'border', 'border-color'],
 		strip=True, strip_comments=True)
@@ -23,7 +21,7 @@ def clean_email_html(html):
 		return html
 
 	return bleach.clean(clean_script_and_style(html),
-		tags=['div', 'p', 'br', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 'a',
+		tags=['div', 'p', 'br', 'ul', 'ol', 'li', 'b', 'i', 'em', 'a',
 			'table', 'thead', 'tbody', 'td', 'tr', 'th', 'pre', 'code',
 			'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'button', 'img'],
 		attributes=['border', 'colspan', 'rowspan',
@@ -49,7 +47,7 @@ def clean_script_and_style(html):
 def sanitize_html(html, linkify=False):
 	"""
 	Sanitize HTML tags, attributes and style to prevent XSS attacks
-	Based on bleach clean, bleach whitelist and html5lib's Sanitizer defaults
+	Based on bleach clean, bleach whitelist and HTML5lib's Sanitizer defaults
 
 	Does not sanitize JSON, as it could lead to future problems
 	"""
@@ -165,8 +163,7 @@ acceptable_attributes = [
 	'width', 'wrap', 'xml:lang', 'data-row', 'data-list', 'data-language',
 	'data-value', 'role', 'frameborder', 'allowfullscreen', 'spellcheck',
 	'data-mode', 'data-gramm', 'data-placeholder', 'data-comment',
-	'data-id', 'data-denotation-char', 'itemprop', 'itemscope',
-	'itemtype', 'itemid', 'itemref', 'datetime'
+	'data-id', 'data-denotation-char'
 ]
 
 mathml_attributes = [

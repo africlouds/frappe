@@ -3,12 +3,9 @@
 # See license.txt
 from __future__ import unicode_literals
 
-import json
-import unittest
-
 import frappe
-from frappe.utils import add_to_date, get_link_to_form, today
-from frappe.utils.data import is_html
+import unittest, json
+from frappe.utils import get_link_to_form, today, add_to_date
 
 # test_records = frappe.get_test_records('Auto Email Report')
 
@@ -20,8 +17,7 @@ class TestAutoEmailReport(unittest.TestCase):
 
 		data = auto_email_report.get_report_content()
 
-		self.assertTrue(is_html(data))
-		self.assertTrue(str(get_link_to_form('Module Def', 'Core')) in data)
+		self.assertTrue('<td>'+str(get_link_to_form('Module Def', 'Core'))+'</td>' in data)
 
 		auto_email_report.format = 'CSV'
 

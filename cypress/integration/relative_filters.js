@@ -1,11 +1,11 @@
 context('Relative Timeframe', () => {
 	beforeEach(() => {
 		cy.login();
-		cy.visit('/desk#workspace/Website');
+		cy.visit('/desk');
 	});
 	before(() => {
 		cy.login();
-		cy.visit('/desk#workspace/Website');
+		cy.visit('/desk');
 		cy.window().its('frappe').then(frappe => {
 			frappe.call("frappe.tests.ui_test_helpers.create_todo_records");
 		});

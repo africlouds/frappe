@@ -15,7 +15,8 @@ frappe.ui.toolbar.Toolbar = Class.extend({
 		awesome_bar.setup("#navbar-search");
 		awesome_bar.setup("#modal-search");
 
-		this.setup_notifications();
+		this.setup_energy_point_notifications();
+
 		this.make();
 	},
 
@@ -29,6 +30,10 @@ frappe.ui.toolbar.Toolbar = Class.extend({
 	},
 
 	bind_events: function() {
+		$(document).on("notification-update", function() {
+			frappe.ui.notifications.update_notifications();
+		});
+
 		// clear all custom menus on page change
 		$(document).on("page-change", function() {
 			$("header .navbar .custom-menu").remove();
@@ -156,8 +161,13 @@ frappe.ui.toolbar.Toolbar = Class.extend({
 		}
 	},
 
-	setup_notifications: function() {
-		this.notifications = new frappe.ui.Notifications();
+	setup_energy_point_notifications: function() {
+		if (frappe.boot.energy_points_enabled) {
+			$('.dropdown-energy-points').show();
+			this.energy_points_notifications = new frappe.ui.EnergyPointsNotifications();
+		} else {
+			$('.dropdown-energy-points').hide();
+		}
 	}
 
 });
@@ -215,16 +225,19 @@ $.extend(frappe.ui.toolbar, {
 	},
 });
 
-frappe.ui.toolbar.clear_cache = frappe.utils.throttle(function() {
+frappe.ui.toolbar.clear_cache = function() {
 	frappe.assets.clear_local_storage();
-	frappe.xcall('frappe.sessions.clear').then(message => {
-		frappe.show_alert({
-			message: message,
-			indicator: 'green'
-		});
-		location.reload(true);
+	frappe.call({
+		method: 'frappe.sessions.clear',
+		callback: function(r) {
+			if(!r.exc) {
+				frappe.show_alert({message:r.message, indicator:'green'});
+				location.reload(true);
+			}
+		}
 	});
-}, 10000);
+	return false;
+};
 
 frappe.ui.toolbar.show_about = function() {
 	try {

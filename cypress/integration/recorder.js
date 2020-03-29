@@ -4,7 +4,7 @@ context('Recorder', () => {
 	});
 
 	it('Navigate to Recorder', () => {
-		cy.visit('/desk#workspace/Website');
+		cy.visit('/desk');
 		cy.awesomebar('recorder');
 		cy.get('h1').should('contain', 'Recorder');
 		cy.location('hash').should('eq', '#recorder');

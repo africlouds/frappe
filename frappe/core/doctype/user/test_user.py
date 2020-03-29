@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import frappe, unittest
+import requests
 
 from frappe.model.delete_doc import delete_doc
 from frappe.utils.data import today, add_to_date
@@ -224,4 +225,3 @@ class TestUser(unittest.TestCase):
 
 def delete_contact(user):
 	frappe.db.sql("DELETE FROM `tabContact` WHERE `email_id`= %s", user)
-	frappe.db.sql("DELETE FROM `tabContact Email` WHERE `email_id`= %s", user)

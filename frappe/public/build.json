@@ -1,12 +1,7 @@
 {
 	"css/frappe-web-b4.css": [
-		"public/scss/website.scss",
-		"public/less/indicator.less"
-	],
-	"css/frappe-chat-web.css": [
-		"public/css/font-awesome.css",
-		"public/css/octicons/octicons.css",
-		"public/less/chat.less"
+		"public/less/indicator.less",
+		"public/scss/website.scss"
 	],
 	"concat:js/moment-bundle.min.js": [
 		"node_modules/moment/min/moment-with-locales.min.js",
@@ -17,9 +12,6 @@
 	],
 	"js/frappe-recorder.min.js": [
 		"public/js/frappe/recorder/recorder.js"
-	],
-	"js/checkout.min.js": [
-		"public/js/integrations/razorpay.js"
 	],
 	"js/frappe-web.min.js": [
 		"public/js/frappe/class.js",
@@ -52,22 +44,6 @@
 		"website/js/bootstrap-4.js"
 	],
 	"js/control.min.js": [
-		"node_modules/air-datepicker/dist/js/datepicker.min.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.cs.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.da.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.de.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.en.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.es.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.fi.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.fr.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.hu.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.nl.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.pl.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.pt-BR.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.pt.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.ro.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.sk.js",
-		"node_modules/air-datepicker/dist/js/i18n/datepicker.zh.js",
 		"public/js/frappe/ui/capture.js",
 		"public/js/frappe/form/controls/control.js"
 	],
@@ -94,7 +70,6 @@
 		"public/less/indicator.less",
 		"public/less/avatar.less",
 		"public/less/navbar.less",
-		"public/less/notifications.less",
 		"public/less/sidebar.less",
 		"public/less/page.less",
 		"public/less/tree.less",
@@ -130,6 +105,8 @@
 		"public/js/lib/socket.io.min.js",
 		"public/js/lib/jSignature.min.js",
 		"public/js/frappe/translate.js",
+		"public/js/lib/datepicker/datepicker.min.js",
+		"public/js/lib/datepicker/locale-all.js",
 		"public/js/lib/leaflet/leaflet.js",
 		"public/js/lib/leaflet/leaflet.draw.js",
 		"public/js/lib/leaflet/L.Control.Locate.js",
@@ -162,7 +139,6 @@
 		"public/js/frappe/ui/page.html",
 		"public/js/frappe/ui/page.js",
 		"public/js/frappe/ui/slides.js",
-		"public/js/frappe/ui/onboarding_dialog.js",
 		"public/js/frappe/ui/find.js",
 		"public/js/frappe/ui/iconbar.js",
 		"public/js/frappe/form/layout.js",
@@ -209,9 +185,7 @@
 
 		"public/js/frappe/ui/toolbar/awesome_bar.js",
 		"public/js/frappe/ui/toolbar/energy_points_notifications.js",
-		"public/js/frappe/ui/notifications/notifications.js",
 		"public/js/frappe/ui/toolbar/search.js",
-		"public/js/frappe/ui/toolbar/tag_utils.js",
 		"public/js/frappe/ui/toolbar/search.html",
 		"public/js/frappe/ui/toolbar/search_header.html",
 		"public/js/frappe/ui/toolbar/search_utils.js",
@@ -221,8 +195,6 @@
 		"public/js/frappe/ui/toolbar/notifications.js",
 		"public/js/frappe/views/communication.js",
 		"public/js/frappe/views/translation_manager.js",
-
-		"public/js/frappe/widgets/widget_group.js",
 
 		"public/js/frappe/ui/sort_selector.html",
 		"public/js/frappe/ui/sort_selector.js",
@@ -237,9 +209,11 @@
 		"public/js/frappe/chat.js",
 		"public/js/frappe/social/social_factory.js",
 		"public/js/frappe/utils/energy_point_utils.js",
-		"public/js/frappe/utils/dashboard_utils.js",
 		"public/js/frappe/ui/chart.js",
 		"public/js/frappe/barcode_scanner/index.js"
+	],
+	"css/module.min.css": [
+		"public/less/module.less"
 	],
 	"css/form.min.css": [
 		"public/less/form_grid.less"
@@ -324,12 +298,13 @@
 		"public/js/frappe/views/reports/print_grid.html",
 		"public/js/frappe/views/reports/print_tree.html",
 		"public/js/frappe/ui/group_by/group_by.html",
-		"public/js/frappe/ui/group_by/group_by.js",
-		"public/js/frappe/views/reports/report_utils.js"
+		"public/js/frappe/ui/group_by/group_by.js"
 	],
 	"js/web_form.min.js": [
 		"public/js/frappe/utils/datetime.js",
-		"public/js/frappe/web_form/webform_script.js"
+		"public/js/frappe/web_form/webform_script.js",
+		"public/js/lib/datepicker/datepicker.min.js",
+		"public/js/lib/datepicker/datepicker.en.js"
 	],
 	"css/web_form.css": [
 		"public/less/list.less",
@@ -345,10 +320,10 @@
 	"js/social.min.js": [
 		"public/js/frappe/social/social_home.js"
 	],
+	"js/modules.min.js": [
+		"public/js/frappe/views/modules_home.js"
+	],
 	"js/barcode_scanner.min.js": [
 		"public/js/frappe/barcode_scanner/quagga.js"
-	],
-	"js/data_import_tools.min.js": [
-		"public/js/frappe/data_import/index.js"
 	]
 }

@@ -25,7 +25,7 @@ frappe.ui.GroupBy = class {
 		this.groupby_select = this.groupby_edit_area.find('select.groupby');
 		this.aggregate_function_select = this.groupby_edit_area.find('select.aggregate-function');
 		this.aggregate_on_select = this.groupby_edit_area.find('select.aggregate-on');
-		this.aggregate_on_html = ``;
+
 		// set default to count
 		this.aggregate_function_select.val("count");
 		this.page.wrapper.find(".frappe-list").append(
@@ -51,32 +51,21 @@ frappe.ui.GroupBy = class {
 	}
 
 	show_hide_aggregate_on() {
-		let fn = this.aggregate_function_select.val();
-		if (fn === 'sum' || fn === 'avg') {
-			if (!this.aggregate_on_html.length) {
-				this.aggregate_on_html = `<option value="" disabled selected>
-					${__("Select Field...")}</option>`;
-
-				for (let doctype in this.all_fields) {
-					const doctype_fields = this.all_fields[doctype];
-					doctype_fields.forEach(field => {
-						// pick numeric fields for sum / avg
-						if (frappe.model.is_numeric_field(field.fieldtype)) {
-							let option_text = doctype == this.doctype
-								? field.label
-								: `${field.label} (${doctype})`;
-							this.aggregate_on_html+= `<option data-doctype="${doctype}"
-								value="${field.fieldname}">${option_text}</option>`;
-						}
-					});
+		this.report_view.meta.fields.forEach((field) => {
+			let fn = this.aggregate_function_select.val();
+			if(fn === 'sum' || fn === 'avg') {
+				// pick numeric fields for sum / avg
+				if(frappe.model.is_numeric_field(field.fieldtype)) {
+					this.aggregate_on_select.append(
+						$('<option>', { value : field.fieldname })
+							.text(field.label));
 				}
+				this.aggregate_on_select.show();
+			} else {
+				// count, so no aggregate function
+				this.aggregate_on_select.hide();
 			}
-			this.aggregate_on_select.html(this.aggregate_on_html);
-			this.aggregate_on_select.show();
-		} else {
-			// count, so no aggregate function
-			this.aggregate_on_select.hide();
-		}
+		});
 	}
 
 	get_settings() {
@@ -92,11 +81,7 @@ frappe.ui.GroupBy = class {
 	}
 
 	apply_settings(settings) {
-
-		// Extract fieldname from `tabdoctype`.`fieldname`
-		let group_by_fieldname = settings.group_by.split('.')[1].replace(/`/g, '');
-
-		this.groupby_select.val(group_by_fieldname);
+		this.groupby_select.val(settings.group_by);
 		this.aggregate_function_select.val(settings.aggregate_function);
 		this.show_hide_aggregate_on();
 		this.aggregate_on_select.val(settings.aggregate_on);
@@ -125,10 +110,8 @@ frappe.ui.GroupBy = class {
 
 		if (this.aggregate_function === 'count') {
 			this.aggregate_on = 'name';
-			this.aggregate_on_doctype = null;
 		} else {
 			this.aggregate_on = this.aggregate_on_select.val();
-			this.aggregate_on_doctype = this.aggregate_on_select.find(':selected').attr('data-doctype');
 		}
 
 
@@ -156,13 +139,11 @@ frappe.ui.GroupBy = class {
 
 	set_args(args) {
 		if (this.aggregate_function && this.group_by) {
-			let aggregate_column, aggregate_on_field;
-			if (this.aggregate_function === 'count') {
+			let aggregate_column;
+			if(this.aggregate_function === 'count') {
 				aggregate_column = 'count(`tab'+ this.doctype + '`.`name`)';
 			} else {
-				aggregate_column = 
-					`${this.aggregate_function}(\`tab${this.aggregate_on_doctype}\`.\`${this.aggregate_on}\`)`;
-				aggregate_on_field = '`tab' + this.aggregate_on_doctype + '`.`' + this.aggregate_on + '`';
+				aggregate_column = `${this.aggregate_function}(\`tab${this.doctype}\`.\`${this.aggregate_on}\`)`;
 			}
 
 			this.report_view.group_by = this.group_by;
@@ -181,13 +162,9 @@ frappe.ui.GroupBy = class {
 			// rebuild fields for group by
 			args.fields = this.report_view.get_fields();
 
-			// add aggregate column in both query args and report views
-			this.report_view.fields.push(['_aggregate_column', this.aggregate_on_doctype || this.doctype]);
+			// add aggregate column in both query args and report view
+			this.report_view.fields.push(['_aggregate_column', this.doctype]);
 			args.fields.push(aggregate_column + ' as _aggregate_column');
-
-			if (aggregate_on_field) {
-				args.fields.push(aggregate_on_field);
-			}
 
 			// setup columns in datatable
 			this.report_view.setup_columns();
@@ -214,7 +191,7 @@ frappe.ui.GroupBy = class {
 			};
 		} else {
 			// get properties of "aggregate_on", for example Net Total
-			docfield = Object.assign({}, frappe.meta.docfield_map[this.aggregate_on_doctype][this.aggregate_on]);
+			docfield = Object.assign({}, frappe.meta.docfield_map[this.doctype][this.aggregate_on]);
 			if (this.aggregate_function === 'sum') {
 				docfield.label = __('Sum of {0}', [docfield.label]);
 			} else {
@@ -249,26 +226,23 @@ frappe.ui.GroupBy = class {
 	}
 
 	get_group_by_fields() {
-		this.group_by_fields = {};
-		this.all_fields = {};
-
-		let fields = this.report_view.meta.fields.filter(f => ["Select", "Link", "Data", "Int", "Check"].includes(f.fieldtype));
-		this.group_by_fields[this.doctype] = fields;
-		this.all_fields[this.doctype] = this.report_view.meta.fields;
+		let group_by_fields = {};
+		let fields = this.report_view.meta.fields.filter(f => ["Select", "Link"].includes(f.fieldtype));
+		group_by_fields[this.doctype] = fields;
 
 		const standard_fields_filter = df =>
 			!in_list(frappe.model.no_value_type, df.fieldtype) && !df.report_hide;
-
+		
 		const table_fields = frappe.meta.get_table_fields(this.doctype)
 			.filter(df => !df.hidden);
 
 		table_fields.forEach(df => {
 			const cdt = df.options;
 			const child_table_fields = frappe.meta.get_docfields(cdt).filter(standard_fields_filter);
-			this.group_by_fields[cdt] = child_table_fields;
-			this.all_fields[cdt] = child_table_fields;
+			group_by_fields[cdt] = child_table_fields;
 		});
-		return this.group_by_fields;
+
+		return group_by_fields;
 	}
 
 };

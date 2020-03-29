@@ -441,8 +441,8 @@ frappe.PrintFormatBuilder = Class.extend({
 		});
 	},
 	setup_field_settings: function() {
-
-		this.page.main.find(".field-settings").on("click", () => {
+		var me = this;
+		this.page.main.on("click", ".field-settings", function() {
 			var field = $(this).parent();
 
 			// new dialog
@@ -695,8 +695,7 @@ frappe.PrintFormatBuilder = Class.extend({
 				{
 					fieldname: "content",
 					fieldtype: "Code",
-					label: label,
-					options: "HTML"
+					label: label
 				},
 				{
 					fieldname: "help",

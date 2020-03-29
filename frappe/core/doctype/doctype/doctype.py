@@ -24,7 +24,6 @@ from frappe.modules import make_boilerplate, get_doc_path
 from frappe.database.schema import validate_column_name, validate_column_length
 from frappe.model.docfield import supports_translation
 from frappe.modules.import_file import get_file_path
-from frappe.model.meta import Meta
 
 
 class InvalidFieldNameError(frappe.ValidationError): pass
@@ -248,7 +247,7 @@ class DocType(Document):
 		if autoname and autoname.startswith('field:'):
 			field = autoname.split(":")[1]
 			if not field or field not in [ df.fieldname for df in self.fields ]:
-				frappe.throw(_("Invalid fieldname '{0}' in autoname").format(field))
+				frappe.throw(_("Invalid fieldname '{0}' in autoname".format(field)))
 			else:
 				for df in self.fields:
 					if df.fieldname == field:
@@ -276,7 +275,7 @@ class DocType(Document):
 		"""Update database schema, make controller templates if `custom` is not set and clear cache."""
 		self.delete_duplicate_custom_fields()
 		try:
-			frappe.db.updatedb(self.name, Meta(self))
+			frappe.db.updatedb(self.name, self)
 		except Exception as e:
 			print("\n\nThere was an issue while migrating the DocType: {}\n".format(self.name))
 			raise e
@@ -312,6 +311,7 @@ class DocType(Document):
 			del frappe.local.meta_cache[self.name]
 
 		clear_linked_doctype_cache()
+
 
 	def delete_duplicate_custom_fields(self):
 		if not (frappe.db.table_exists(self.name) and frappe.db.table_exists("Custom Field")):
@@ -586,11 +586,9 @@ class DocType(Document):
 		if not self.get('is_tree'):
 			return
 		self.add_nestedset_fields()
-
-		if not self.nsm_parent_field:
-			field_label = frappe.bold(_("Parent Field (Tree)"))
-			frappe.throw(_("{0} is a mandatory field").format(field_label), frappe.MandatoryError)
-
+		# set field as mandatory
+		field = self.meta.get_field('nsm_parent_field')
+		field.reqd = 1
 		# check if field is valid
 		fieldnames = [df.fieldname for df in self.fields]
 		if self.nsm_parent_field and self.nsm_parent_field not in fieldnames:
@@ -728,8 +726,8 @@ def validate_fields(meta):
 				if not options:
 					frappe.throw(_("{0}: Options must be a valid DocType for field {1} in row {2}").format(docname, d.label, d.idx), WrongOptionsDoctypeLinkError)
 				elif not (options == d.options):
-					frappe.throw(_("{0}: Options {1} must be the same as doctype name {2} for the field {3}")
-						.format(docname, d.options, options, d.label), DoctypeLinkError)
+					frappe.throw(_("{0}: Options {1} must be the same as doctype name {2} for the field {3}", DoctypeLinkError)
+						.format(docname, d.options, options, d.label))
 				else:
 					# fix case
 					d.options = options
@@ -906,7 +904,7 @@ def validate_fields(meta):
 
 	def check_illegal_depends_on_conditions(docfield):
 		''' assignment operation should not be allowed in the depends on condition.'''
-		depends_on_fields = ["depends_on", "collapsible_depends_on", "mandatory_depends_on", "read_only_depends_on"]
+		depends_on_fields = ["depends_on", "collapsible_depends_on"]
 		for field in depends_on_fields:
 			depends_on = docfield.get(field, None)
 			if depends_on and ("=" in depends_on) and \

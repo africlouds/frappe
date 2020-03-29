@@ -88,6 +88,7 @@ frappe.views.ListSidebar = class ListSidebar {
 		// show image link if image_view
 		if (this.list_view.meta.image_field) {
 			this.sidebar.find('.list-link[data-view="Image"]').removeClass('hide');
+			this.sidebar.find('.list-link[data-view="Map"]').removeClass('hide');
 			show_list_link = true;
 		}
 

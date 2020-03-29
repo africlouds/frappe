@@ -14,5 +14,10 @@ frappe.ui.form.on('Desk Page', {
 				});
 			frm.disable_save();
 		}
+		if (!frm.is_new()) {
+			frm.add_custom_button(__('Go to {0} Desk Page', [frm.doc.title || frm.doc.name]), () => {
+				frappe.set_route('#workspace', frm.doc.name);
+			});
+		}
 	}
 });
